@@ -16,14 +16,6 @@ events:
             - 'sleep 2'
             - 'cd ..'
             - ./vendor/bin/behat
-      # The "deploy" step runs the proof-of-concept code. Later, this
-      # functionality will be built into Pipelines directly and controlled via
-      # YAML.
-      - deploy:
-          script:
-            - cd environments
-            - composer install
-            - php cloud-ode.php
 variables:
   global:
     VALIDATION_TOKEN:
