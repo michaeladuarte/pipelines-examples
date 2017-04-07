@@ -1,32 +1,69 @@
-# Pipelines Examples
+# Deploying to on-demand environments
 
-This repository contains example code and tutorials for Acquia Pipelines.
+This tutorial demonstrates how to automatically deploy feature
+branches and (if you use GitHub) pull requests to Acquia Cloud On
+Demand Environments (ODEs) using the Pipelines Deploy tool.
 
-### Examples
-* [Basic pipeline](https://github.com/acquia/pipelines-examples/tree/master/basic-pipeline)
-* [Composer based pipeline](https://github.com/acquia/pipelines-examples/tree/master/composer-pipeline)
-* [Acquia BLT](https://github.com/acquia/blt/blob/8.x/scripts/pipelines/acquia-pipelines.yml)
-* Further examples welcome via Pull Request
+The Pipelines Deploy tool provides integration between Pipelines and
+Cloud environments. When the Deploy tool runs during a "build" event:
 
-#### Tutorials
-Each folder contains the sample code for that tutorial, plus a README that includes:
+* The Deploy tool checks to see if a Cloud environment already exists
+  for the build branch, such as pipelines-build-feature (for a feature
+  branch) or pipelines-build-pr-N (for GitHub pull request #N), that
+  will hold the build artifact resulting from the current job.
+* If no such Cloud environment exists, the Deploy tool creates one
+  using the Cloud On Demand Environments feature and configured it to
+  deploy the build branch. This requires that you have added this
+  feature to your Acquia Cloud subscription.
+* If such a Cloud environment already exists, it is left in place.
+* Acquia Cloud will then deploy the build branch to the selected
+  environment.
 
-* additional information and/or specific instructions,
-* a link to a ZIP file containing all the same code, for easy access, and
-* a link to a video that explains the tutorial and shows how it works.
+When the Deploy tool runs during a "pr-merged" event, which is triggered
+when a GitHub pull request is merged to its base branch:
 
-##### The examples are:
-* **[tutorial-101](https://github.com/acquia/pipelines-examples/tree/master/tutorial-101)** - "Hello, World" the simplest possible Pipelines job, just to get started.
-* **[tutorial-201](https://github.com/acquia/pipelines-examples/tree/master/tutorial-201)** - Build a Drupal site using the Acquia Lightning distribution using Composer.
-* **[tutorial-301](https://github.com/acquia/pipelines-examples/tree/master/tutorial-301)** - Access a private repository using Composer by safely adding an SSH key to your Pipelines YAML file.
-* **[tutorial-401](https://github.com/acquia/pipelines-examples/tree/master/tutorial-401)** - Safely store secret data such as credentials in your Pipelines YAML file to be accessible to your job via an environment variable.
-* **[tutorial-501](https://github.com/acquia/pipelines-examples/tree/master/tutorial-501)** - Start a web and MySQL server, and run Behat tests against your site, all within your Pipelines job.
-* **[tutorial-601](https://github.com/acquia/pipelines-examples/tree/master/tutorial-601)** - Install node version manner and node package manager
-* **[tutorial-701](https://github.com/acquia/pipelines-examples/tree/master/tutorial-701)** - Deploy builds, feature branches, and GitHub pull requests to Acquia Cloud on-demand environments.
+* The Deploy tool deletes any Cloud on-demand environments deploying
+  the build branch, pipelines-build-pr-N (for GitHub pull request #N),
+  for that pull request.
 
-### See also
-* [Pipelines documentation](https://docs.acquia.com/pipelines)
-* [Introduction to Pipelines]( https://dev.acquia.com/blog/acquia-pipelines-build-test-and-deployment-automation-for-acquia-cloud/10/08/2016/16381)
-* [Request an invite to the Beta](https://dev.acquia.com/request-invite-acquia-pipelines)
+When the Deploy tool runs during a "pr-closed" event, which is triggered
+when a GitHub pull request is closed without being merged to its base branch:
 
-End of file
+* The Deploy tool deletes any Cloud on-demand environments deploying
+  the build branch, pipelines-build-pr-N (for GitHub pull request #N),
+  for that pull request.
+
+The net result of these behaviors by the Deploy tool is that every
+feature branch and pull request will get its own on-demand environment
+that is updated for every build of that branch performed by Pipelines,
+and on-demand environments for pull requests are deleted automatically
+when the pull request is merged.
+
+To use this tutorial, the steps are:
+
+* Create a feature branch in your Git repo.  Since this tutorial demonstrates Pipelines deployment, call the branch pipelines-deploy:
+```
+  git checkout master
+  git checkout -b pipelines-deploy
+```
+* Copy the `acquia-pipelines.yaml` file from this tutorial into your Git repo (now on the pipelines-deploy branch). You can:
+  * cut and paste the [contents of the file](https://raw.githubusercontent.com/acquia/pipelines-examples/master/tutorial-701/acquia-pipelines.yaml),
+
+<b>OR</b>
+
+  * clone this repository and look in the tutorial-701 folder.
+* Commit `acquia-pipelines.yaml` to the repo and push it:
+```
+  git add acquia-pipelines.yaml
+  git commit -m 'Add Pipelines YAML file'
+  git push origin pipelines-deploy
+```
+* If you [use GitHub with Acquia Pipelines](https://docs.acquia.com/pipelines/github), a job will start immediately.  Otherwise, run ```pipelines start```.
+* When ```pipelines status``` shows the job is complete, visit your site on Acquia Cloud. A new environment named 'pipelines-build-pipelines-deploy' will exist, running the build of the pipelines-deploy branch.
+* Merge the pipelines-deploy branch into master:
+```
+  git checkout master
+  git merge pipelines-deploy
+  git branch -d pipelines-deploy
+```
+* Now, all of your new feature branches and pull requests will get their own Cloud environment.
